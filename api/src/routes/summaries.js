@@ -1,20 +1,14 @@
 import { Router } from 'express'
 import { Summary } from '../models/Summary.js'
 import { buildSummaryForDate } from '../cron.js'
+import { getDhakaDateFromString } from '../utils/timezone.js'
 
 const router = Router()
 
 // GET /api/summaries?date=YYYY-MM-DD&page=1&pageSize=10
 router.get('/', async (req, res) => {
   try {
-    // Default to today in Asia/Dhaka if no date provided
-    const date = req.query.date || (() => {
-      const now = new Date()
-      const dhakaOffset = 6 * 60 // GMT+6 in minutes
-      const localOffset = now.getTimezoneOffset()
-      const dhakaTime = new Date(now.getTime() + (localOffset + dhakaOffset) * 60 * 1000)
-      return dhakaTime.toISOString().slice(0,10)
-    })()
+    const date = getDhakaDateFromString(req.query.date)
     const page = Math.max(1, parseInt(req.query.page || '1', 10))
     const pageSize = Math.max(1, Math.min(100, parseInt(req.query.pageSize || '10', 10)))
 
@@ -26,25 +20,20 @@ router.get('/', async (req, res) => {
     res.json({ items, total })
   } catch (e) {
     console.error(e)
-    res.status(500).json({ error: 'Internal error' })
+    res.status(500).json({ error: e.message || 'Internal error' })
   }
 })
 
 // POST /api/summaries/rebuild?date=YYYY-MM-DD
 router.post('/rebuild', async (req, res) => {
   try {
-    // Default to today in Asia/Dhaka if no date provided
-    const date = req.query.date || (() => {
-      const now = new Date()
-      const dhakaOffset = 6 * 60 // GMT+6 in minutes
-      const localOffset = now.getTimezoneOffset()
-      const dhakaTime = new Date(now.getTime() + (localOffset + dhakaOffset) * 60 * 1000)
-      return dhakaTime.toISOString().slice(0,10)
-    })()
+    const date = getDhakaDateFromString(req.query.date)
+    console.log(`Rebuilding summary for date: ${date}`)
     const result = await buildSummaryForDate(date)
-    res.json({ ok: true, date, count: result?.length || undefined })
+    console.log(`Rebuilt summary with ${result?.length || 0} items`)
+    res.json({ ok: true, date, count: result?.length || 0 })
   } catch (e) {
-    console.error(e)
+    console.error('Rebuild error:', e)
     res.status(500).json({ error: e.message || 'Failed to rebuild' })
   }
 })

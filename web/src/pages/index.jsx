@@ -1,4 +1,4 @@
-import { getSession, signIn, signOut, useSession } from 'next-auth/react'
+import { signIn, signOut, useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 
 function useDarkMode() {
@@ -40,14 +40,7 @@ export default function Home() {
 
 function Dashboard() {
   const [date, setDate] = useState(() => {
-    // Use Asia/Dhaka timezone for "today" default
-    if (typeof window !== 'undefined') {
-      const now = new Date()
-      const dhakaOffset = 6 * 60 // GMT+6 in minutes
-      const localOffset = now.getTimezoneOffset()
-      const dhakaTime = new Date(now.getTime() + (localOffset + dhakaOffset) * 60 * 1000)
-      return dhakaTime.toISOString().slice(0,10)
-    }
+    // Use today's date in local timezone as default
     return new Date().toISOString().slice(0,10)
   })
   const [page, setPage] = useState(1)
@@ -62,7 +55,13 @@ function Dashboard() {
       setLoading(true)
       try {
         const res = await fetch(`/api/summaries?date=${date}&page=${page}&pageSize=${pageSize}`, { signal: controller.signal })
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+        }
         const json = await res.json()
+        if (json.error) {
+          throw new Error(json.error)
+        }
         setData(json)
       } catch (e) {
         if (e.name !== 'AbortError') console.error(e)
@@ -81,17 +80,30 @@ function Dashboard() {
           <button onClick={async()=>{
             setLoading(true)
             try {
-              await fetch(`/api/summaries/rebuild?date=${date}`, { method: 'POST' })
+              const rebuildRes = await fetch(`/api/summaries/rebuild?date=${date}`, { method: 'POST' })
+              if (!rebuildRes.ok) {
+                throw new Error(`Rebuild failed: ${rebuildRes.status}`)
+              }
+              const rebuildData = await rebuildRes.json()
+              console.log('Rebuild result:', rebuildData)
+              
               // Reload data after rebuild
               const res = await fetch(`/api/summaries?date=${date}&page=${page}&pageSize=${pageSize}`)
+              if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+              }
               const json = await res.json()
+              if (json.error) {
+                throw new Error(json.error)
+              }
               setData(json)
             } catch (e) {
               console.error('Rebuild failed:', e)
+              alert(`Rebuild failed: ${e.message}`)
             } finally {
               setLoading(false)
             }
-          }} className="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" disabled={loading}>
+          }} className="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50" disabled={loading}>
             🔄 Rebuild
           </button>
           <button onClick={()=>setEnabled(v=>!v)} className="px-3 py-2 rounded border">{enabled ? '☀️ Light' : '🌙 Dark'}</button>
@@ -143,8 +155,8 @@ function Table({ data }) {
           </tr>
         </thead>
         <tbody>
-          {data.map((item)=> (
-            <tr key={item.messageId} className="border-t border-white/20">
+          {data.map((item, index)=> (
+            <tr key={item.messageId || `item-${index}`} className="border-t border-white/20">
               <td className="p-2">{item.clientName || '-'}</td>
               <td className="p-2 max-w-md whitespace-pre-wrap">{item.problem || '-'}</td>
               <td className="p-2 max-w-md whitespace-pre-wrap">{item.solution || '-'}</td>
@@ -158,9 +170,6 @@ function Table({ data }) {
 }
 
 export async function getServerSideProps(context) {
-  const session = await getSession(context)
-  if (!session) {
-    return { redirect: { destination: '/api/auth/signin', permanent: false } }
-  }
+  // Remove this - let client-side auth handle redirects
   return { props: { } }
 }

@@ -11,18 +11,28 @@ const resolvedIndicators = ['resolved','fixed','closed','issue solved','working 
 const unresolvedIndicators = ['pending','ongoing','still','not resolved','escalated','awaiting','investigating']
 
 export function parseEmailToRecord({ subject = '', body = '', from = '' }) {
-  const text = `${subject}\n${body}`.toLowerCase()
+  try {
+    const text = `${subject}\n${body}`.toLowerCase()
 
-  const problem = complaintKeywords.find(k => text.includes(k)) || extractProblem(text)
-  const solution = extractSolution(text)
-  const status = inferStatus(text)
-  const clientName = parseClientName(from)
+    const problem = complaintKeywords.find(k => text.includes(k)) || extractProblem(text)
+    const solution = extractSolution(text)
+    const status = inferStatus(text)
+    const clientName = parseClientName(from)
 
-  return {
-    clientName,
-    problem,
-    solution,
-    status,
+    return {
+      clientName: clientName || 'Unknown',
+      problem: problem || 'No specific problem detected',
+      solution: solution || 'No solution mentioned',
+      status: status || 'Unknown',
+    }
+  } catch (error) {
+    console.error('Error parsing email:', error)
+    return {
+      clientName: 'Parse Error',
+      problem: 'Failed to parse email content',
+      solution: 'N/A',
+      status: 'Unknown',
+    }
   }
 }
 

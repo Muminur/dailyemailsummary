@@ -1,1 +1,17 @@
-import NextAuth from 'next-auth'\nimport AzureADProvider from 'next-auth/providers/azure-ad'\n\nexport default NextAuth({\n  providers: [\n    AzureADProvider({\n      clientId: process.env.AZURE_CLIENT_ID,\n      clientSecret: process.env.AZURE_CLIENT_SECRET,\n      tenantId: process.env.AZURE_TENANT_ID,\n      authorization: { params: { scope: 'openid profile email offline_access' } }\n    })\n  ],\n  secret: process.env.NEXTAUTH_SECRET,\n  session: { strategy: 'jwt' },\n})\n
+import NextAuth from 'next-auth'
+import AzureADProvider from 'next-auth/providers/azure-ad'
+
+export const authOptions = {
+  providers: [
+    AzureADProvider({
+      clientId: process.env.AZURE_CLIENT_ID,
+      clientSecret: process.env.AZURE_CLIENT_SECRET,
+      tenantId: process.env.AZURE_TENANT_ID,
+      authorization: { params: { scope: 'openid profile email offline_access' } }
+    })
+  ],
+  secret: process.env.NEXTAUTH_SECRET,
+  session: { strategy: 'jwt' },
+}
+
+export default NextAuth(authOptions)

@@ -7,7 +7,14 @@ const router = Router()
 // GET /api/summaries?date=YYYY-MM-DD&page=1&pageSize=10
 router.get('/', async (req, res) => {
   try {
-    const date = req.query.date || new Date().toISOString().slice(0,10)
+    // Default to today in Asia/Dhaka if no date provided
+    const date = req.query.date || (() => {
+      const now = new Date()
+      const dhakaOffset = 6 * 60 // GMT+6 in minutes
+      const localOffset = now.getTimezoneOffset()
+      const dhakaTime = new Date(now.getTime() + (localOffset + dhakaOffset) * 60 * 1000)
+      return dhakaTime.toISOString().slice(0,10)
+    })()
     const page = Math.max(1, parseInt(req.query.page || '1', 10))
     const pageSize = Math.max(1, Math.min(100, parseInt(req.query.pageSize || '10', 10)))
 
@@ -26,7 +33,14 @@ router.get('/', async (req, res) => {
 // POST /api/summaries/rebuild?date=YYYY-MM-DD
 router.post('/rebuild', async (req, res) => {
   try {
-    const date = req.query.date || new Date().toISOString().slice(0,10)
+    // Default to today in Asia/Dhaka if no date provided
+    const date = req.query.date || (() => {
+      const now = new Date()
+      const dhakaOffset = 6 * 60 // GMT+6 in minutes
+      const localOffset = now.getTimezoneOffset()
+      const dhakaTime = new Date(now.getTime() + (localOffset + dhakaOffset) * 60 * 1000)
+      return dhakaTime.toISOString().slice(0,10)
+    })()
     const result = await buildSummaryForDate(date)
     res.json({ ok: true, date, count: result?.length || undefined })
   } catch (e) {

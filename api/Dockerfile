@@ -1,0 +1,1 @@
+# API Dockerfile\nFROM node:18-alpine AS deps\nWORKDIR /app\nCOPY package.json package-lock.json* ./\nRUN npm ci --no-audit --no-fund\n\nFROM node:18-alpine AS runner\nWORKDIR /app\nENV NODE_ENV=production\nCOPY --from=deps /app/node_modules ./node_modules\nCOPY . .\nEXPOSE 4000\nCMD [\"npm\",\"start\"]\n

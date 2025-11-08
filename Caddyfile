@@ -1,0 +1,2 @@
+{$DOMAIN} {\n\tencode zstd gzip\n\ttls {$EMAIL}\n\n\t# Send summaries API and health to the API service
+	@api path /api/summaries* /health\n\thandle @api {\n\t\treverse_proxy api:4000\n\t}\n\n\thandle {\n\t\treverse_proxy web:3000\n\t}\n}\n

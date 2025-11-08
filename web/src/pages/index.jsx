@@ -78,13 +78,40 @@ function Dashboard() {
         <h1 className="text-2xl font-bold">Daily Summary</h1>
         <div className="flex items-center gap-3">
           <input className="px-3 py-2 rounded border bg-white/70 dark:bg-black/30" type="date" value={date} onChange={e=>{setPage(1);setDate(e.target.value)}} />
+          <button onClick={async()=>{
+            setLoading(true)
+            try {
+              await fetch(`/api/summaries/rebuild?date=${date}`, { method: 'POST' })
+              // Reload data after rebuild
+              const res = await fetch(`/api/summaries?date=${date}&page=${page}&pageSize=${pageSize}`)
+              const json = await res.json()
+              setData(json)
+            } catch (e) {
+              console.error('Rebuild failed:', e)
+            } finally {
+              setLoading(false)
+            }
+          }} className="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" disabled={loading}>
+            🔄 Rebuild
+          </button>
           <button onClick={()=>setEnabled(v=>!v)} className="px-3 py-2 rounded border">{enabled ? '☀️ Light' : '🌙 Dark'}</button>
           <button onClick={()=>signOut()} className="px-3 py-2 rounded bg-red-600 text-white">Sign out</button>
         </div>
       </div>
 
       <div className="card p-4">
-        {loading ? <div>Loading...</div> : <Table data={data.items} />}
+        {loading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2">Loading...</span>
+          </div>
+        ) : data.items.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No complaints found for {date}. Try selecting a different date or use the rebuild function.
+          </div>
+        ) : (
+          <Table data={data.items} />
+        )}
         <div className="mt-4 flex justify-between items-center">
           <div>Total: {data.total}</div>
           <div className="flex items-center gap-2">
